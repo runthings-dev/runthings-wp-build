@@ -1,5 +1,22 @@
 #!/bin/bash
 
+# Parse arguments
+FORCE_OVERWRITE=false
+while [[ $# -gt 0 ]]; do
+  case $1 in
+    -f|--force)
+      FORCE_OVERWRITE=true
+      shift
+      ;;
+    *)
+      echo "Unknown option: $1"
+      echo "Usage: rtp-build [--force|-f]"
+      exit 1
+      ;;
+  esac
+done
+
+# Globals
 PLUGIN_DIR="$(pwd)"
 PLUGINSLUG="$(basename "$PLUGIN_DIR")"
 BUILD_DIR="${PLUGIN_DIR}/build"
@@ -110,9 +127,14 @@ if [[ -n "$RELEASE_BASE_DIR" ]]; then
 
     # Check if release already exists
     if [[ -d "$RELEASE_DIR" ]] && [[ -f "${RELEASE_DIR}/${PLUGINSLUG}.zip" ]]; then
-      echo "Error: Release v${VERSION} already exists at ${RELEASE_DIR}/"
-      echo "Please update the version number in ${PLUGINSLUG}.php before building."
-      exit 1
+      if [[ "$FORCE_OVERWRITE" == false ]]; then
+        echo "Error: Release v${VERSION} already exists at ${RELEASE_DIR}/"
+        echo "Please update the version number in ${PLUGINSLUG}.php before building."
+        echo "Or use --force to overwrite the existing release."
+        exit 1
+      else
+        echo "Warning: Overwriting existing release v${VERSION} at ${RELEASE_DIR}/"
+      fi
     fi
 
     echo "Copying zip to releases archive: ${RELEASE_DIR}/"
