@@ -5,6 +5,10 @@
   "bin": {
     "rtp-build": "./bin/build-zip.sh"
   },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/runthings-dev/runthings-wp-build.git"
+  },
   "keywords": ["wordpress", "plugin", "build"],
   "author": "runthingsdev",
   "license": "MIT"
