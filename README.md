@@ -22,7 +22,8 @@ The plugin directory must contain a main plugin file named `{plugin-slug}.php` (
 
 | Option | Description |
 |--------|-------------|
-| `-f`, `--force` | Overwrite existing release in the archive directory |
+| `--init` | Create a default `.distignore` file in the current directory |
+| `-f`, `--force` | Overwrite existing release archive (or `.distignore` with `--init`) |
 
 ## Environment Variables
 
