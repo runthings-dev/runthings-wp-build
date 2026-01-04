@@ -3,14 +3,21 @@
   "version": "3.0.0",
   "description": "Build RunThings WordPress plugin zip files",
   "bin": {
-    "rtp-build": "./bin/build-zip.sh"
+    "rtp-build": "bin/build-zip.sh"
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/runthings-dev/runthings-wp-build.git"
+    "url": "git+https://github.com/runthings-dev/runthings-wp-build.git"
   },
-  "os": ["darwin", "linux"],
-  "keywords": ["wordpress", "plugin", "build"],
+  "os": [
+    "darwin",
+    "linux"
+  ],
+  "keywords": [
+    "wordpress",
+    "plugin",
+    "build"
+  ],
   "author": "runthingsdev",
   "license": "MIT"
 }
