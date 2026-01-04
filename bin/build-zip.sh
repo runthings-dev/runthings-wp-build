@@ -63,10 +63,16 @@ LANG_DIR="languages"
 POT_FILE="$LANG_DIR/$PLUGINSLUG.pot"
 RELEASE_BASE_DIR="${RTP_RELEASE_DIR:-}"
 
-# Colors
-RED='\033[0;31m'
-YELLOW='\033[0;33m'
-NC='\033[0m' # No Color
+# Colors (only if TTY and NO_COLOR not set)
+if [[ -z "$NO_COLOR" ]] && [[ -t 1 ]]; then
+  RED='\033[0;31m'
+  YELLOW='\033[0;33m'
+  NC='\033[0m'
+else
+  RED=''
+  YELLOW=''
+  NC=''
+fi
 
 # That's all, stop editing! Happy building.
 
