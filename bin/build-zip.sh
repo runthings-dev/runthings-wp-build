@@ -196,4 +196,21 @@ elif [[ -z "$RELEASE_BASE_DIR" ]]; then
   echo "Note: RTP_RELEASE_DIR not set, skipping release archive copy."
 fi
 
+# Commit, tag, and push release
+if [[ -n "$VERSION" ]]; then
+  echo "Committing release changes..."
+  git add -A
+  if ! git commit -m "chore(release): deploy v${VERSION}"; then
+    echo -e "${YELLOW}Warning:${NC} Nothing to commit, skipping git operations."
+  else
+    echo "Creating tag v${VERSION}..."
+    git tag "v${VERSION}"
+
+    echo "Pushing commit and tag to remote..."
+    git push && git push --tags
+  fi
+else
+  echo -e "${YELLOW}Warning:${NC} No version found, skipping git operations."
+fi
+
 echo "Build completed successfully."
