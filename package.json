@@ -1,0 +1,11 @@
+{
+  "name": "runthings-wp-build",
+  "version": "2.3.0",
+  "description": "Build RunThings WordPress plugin zip files",
+  "bin": {
+    "rtp-build": "./bin/build-zip.sh"
+  },
+  "keywords": ["wordpress", "plugin", "build"],
+  "author": "runthingsdev",
+  "license": "MIT"
+}
