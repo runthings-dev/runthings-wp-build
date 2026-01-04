@@ -2,19 +2,55 @@
 
 # Parse arguments
 FORCE_OVERWRITE=false
+INIT_DISTIGNORE=false
 while [[ $# -gt 0 ]]; do
   case $1 in
     -f|--force)
       FORCE_OVERWRITE=true
       shift
       ;;
+    --init)
+      INIT_DISTIGNORE=true
+      shift
+      ;;
     *)
       echo "Unknown option: $1"
-      echo "Usage: rtp-build [--force|-f]"
+      echo "Usage: rtp-build [--force|-f] [--init]"
       exit 1
       ;;
   esac
 done
+
+# Handle --init: write default .distignore and exit
+if [[ "$INIT_DISTIGNORE" == true ]]; then
+  DISTIGNORE_FILE="$(pwd)/.distignore"
+  if [[ -f "$DISTIGNORE_FILE" ]] && [[ "$FORCE_OVERWRITE" == false ]]; then
+    echo "Error: .distignore already exists. Use --force to overwrite."
+    exit 1
+  fi
+  cat > "$DISTIGNORE_FILE" << 'EOF'
+# Ignore development files
+.wordpress-org/
+.git/
+.gitignore
+node_modules/
+vendor/
+tests/
+build/
+.distignore
+
+# Ignore configuration files
+*.yml
+*.lock
+
+# Ignore build scripts and macOS file system files
+/bin/
+.DS_Store
+__MACOSX
+EOF
+  echo "Created .distignore at $DISTIGNORE_FILE"
+  exit 0
+fi
 
 # Globals
 PLUGIN_DIR="$(pwd)"
