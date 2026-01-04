@@ -49,6 +49,45 @@ The following tools must be installed and available in your PATH:
 2. **Generates `.pot` translation file** using WP-CLI with sensible excludes
 3. **Creates clean zip** excluding development files via `.distignore`
 4. **Archives release** to versioned directory (if `RTP_RELEASE_DIR` is set)
+5. **Commits, tags, and pushes** the release to git remote
+
+## Workflow
+
+### Initial Setup
+
+1. Install globally:
+   ```bash
+   npm install -g runthings-wp-build
+   ```
+
+2. In your plugin directory, create the `.distignore` file:
+   ```bash
+   rtp-build --init
+   ```
+
+3. Review and customise `.distignore` for your project.
+
+### Releasing a Version
+
+1. **Commit your changelog** - commit any changelog and upgrade notice changes first, as `docs(readme): changelog for v{version}`
+
+2. **Update version numbers** - update all version references (plugin header, readme.txt stable tag, version constants/defines) to the new version. **Leave these changes uncommitted.**
+
+3. **Run the build:**
+   ```bash
+   rtp-build
+   ```
+
+   This will:
+   - Generate the `.pot` file
+   - Create the distribution zip
+   - Commit all uncommitted changes with message `chore(release): deploy v{version}`
+   - Create a git tag `v{version}`
+   - Push the commit and tag to remote
+
+### Automation
+
+If you have CI/CD automations (e.g., creating GitHub releases, deploying to WordPress.org), trigger them from the tag push event.
 
 ## .distignore
 
