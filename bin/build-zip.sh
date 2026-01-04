@@ -107,6 +107,14 @@ if [[ -n "$RELEASE_BASE_DIR" ]]; then
   # Copy zip to releases archive
   if [[ -n "$VERSION" ]]; then
     RELEASE_DIR="${RELEASE_BASE_DIR}/${PLUGINSLUG}/releases/v${VERSION}"
+
+    # Check if release already exists
+    if [[ -d "$RELEASE_DIR" ]] && [[ -f "${RELEASE_DIR}/${PLUGINSLUG}.zip" ]]; then
+      echo "Error: Release v${VERSION} already exists at ${RELEASE_DIR}/"
+      echo "Please update the version number in ${PLUGINSLUG}.php before building."
+      exit 1
+    fi
+
     echo "Copying zip to releases archive: ${RELEASE_DIR}/"
     mkdir -p "${RELEASE_DIR}"
     cp "${BUILD_DIR}/${PLUGINSLUG}.zip" "${RELEASE_DIR}/"
