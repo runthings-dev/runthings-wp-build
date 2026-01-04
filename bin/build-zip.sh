@@ -63,12 +63,17 @@ LANG_DIR="languages"
 POT_FILE="$LANG_DIR/$PLUGINSLUG.pot"
 RELEASE_BASE_DIR="${RTP_RELEASE_DIR:-}"
 
+# Colors
+RED='\033[0;31m'
+YELLOW='\033[0;33m'
+NC='\033[0m' # No Color
+
 # That's all, stop editing! Happy building.
 
 # Function to check for required tools
 check_tool() {
   if ! command -v "$1" &> /dev/null; then
-    echo "Error: $1 is not installed."
+    echo -e "${RED}Error:${NC} $1 is not installed."
     exit 1
   fi
 }
@@ -81,16 +86,38 @@ check_tool wp
 
 # Check if the script is being run from the root directory of the plugin
 if [[ ! -f "${PLUGIN_DIR}/${PLUGINSLUG}.php" ]]; then
-  echo "Error: This script should be run from the root directory of the plugin."
+  echo -e "${RED}Error:${NC} This script should be run from the root directory of the plugin."
   echo "Make sure you are in the ${PLUGINSLUG} directory and run the script as ./bin/build-zip.sh"
   exit 1
+fi
+
+# Early check: if RTP_RELEASE_DIR is set, verify we can release before building
+if [[ -n "$RELEASE_BASE_DIR" ]]; then
+  VERSION=$(grep -m1 " \* Version:" "${PLUGIN_DIR}/${PLUGINSLUG}.php" | sed 's/.*Version: *//' | tr -d '[:space:]')
+
+  if [[ -n "$VERSION" ]]; then
+    RELEASE_DIR="${RELEASE_BASE_DIR}/${PLUGINSLUG}/releases/v${VERSION}"
+
+    if [[ -d "$RELEASE_DIR" ]] && [[ -f "${RELEASE_DIR}/${PLUGINSLUG}.zip" ]]; then
+      if [[ "$FORCE_OVERWRITE" == false ]]; then
+        echo -e "${RED}Error:${NC} Release v${VERSION} already exists at ${RELEASE_DIR}/"
+        echo "Please update the version number in ${PLUGINSLUG}.php before building."
+        echo "Or use --force to overwrite the existing release."
+        exit 1
+      else
+        echo -e "${YELLOW}Warning:${NC} Will overwrite existing release v${VERSION}"
+      fi
+    fi
+  else
+    echo -e "${YELLOW}Warning:${NC} Could not extract version from plugin header, will skip release copy."
+  fi
 fi
 
 # Regenerate Composer autoloader if it exists
 if [[ -f "${PLUGIN_DIR}/vendor/autoload.php" ]]; then
   echo "Regenerating Composer autoloader..."
   if ! composer dump-autoload; then
-    echo "Error: Failed to regenerate Composer autoloader."
+    echo -e "${RED}Error:${NC} Failed to regenerate Composer autoloader."
     exit 1
   fi
 fi
@@ -106,7 +133,7 @@ base_cmd=(wp i18n make-pot . "$POT_FILE" --domain="$PLUGINSLUG" --exclude="$EXCL
 if ! "${base_cmd[@]}"; then
   echo "Retrying without JS scanning..."
   if ! "${base_cmd[@]}" --skip-js; then
-    echo "Error: Failed to generate .pot file."
+    echo -e "${RED}Error:${NC} Failed to generate .pot file."
     exit 1
   fi
 fi
@@ -138,7 +165,7 @@ trap cleanup EXIT
 # Copy all files to the temporary directory, excluding the patterns in .distignore
 echo "Copying files to temporary directory, excluding patterns in .distignore..."
 if ! rsync -av --exclude-from="${DISTIGNORE}" "${PLUGIN_DIR}/" "${TEMP_DIR}/"; then
-  echo "Error: rsync failed."
+  echo -e "${RED}Error:${NC} rsync failed."
   exit 1
 fi
 
@@ -146,7 +173,7 @@ fi
 cd "${TEMP_DIR}"
 echo "Creating zip file..."
 if ! zip -r "${BUILD_DIR}/${PLUGINSLUG}.zip" .; then
-  echo "Error: zip failed."
+  echo -e "${RED}Error:${NC} zip failed."
   exit 1
 fi
 echo "Zip file created at ${BUILD_DIR}/${PLUGINSLUG}.zip"
@@ -154,34 +181,12 @@ echo "Zip file created at ${BUILD_DIR}/${PLUGINSLUG}.zip"
 # Clean up the temporary directory
 cd "${PLUGIN_DIR}"
 
-# Copy zip to releases archive (if RTP_RELEASE_DIR is set)
-if [[ -n "$RELEASE_BASE_DIR" ]]; then
-  # Extract version from plugin header
-  VERSION=$(grep -m1 " \* Version:" "${PLUGIN_DIR}/${PLUGINSLUG}.php" | sed 's/.*Version: *//' | tr -d '[:space:]')
-
-  # Copy zip to releases archive
-  if [[ -n "$VERSION" ]]; then
-    RELEASE_DIR="${RELEASE_BASE_DIR}/${PLUGINSLUG}/releases/v${VERSION}"
-
-    # Check if release already exists
-    if [[ -d "$RELEASE_DIR" ]] && [[ -f "${RELEASE_DIR}/${PLUGINSLUG}.zip" ]]; then
-      if [[ "$FORCE_OVERWRITE" == false ]]; then
-        echo "Error: Release v${VERSION} already exists at ${RELEASE_DIR}/"
-        echo "Please update the version number in ${PLUGINSLUG}.php before building."
-        echo "Or use --force to overwrite the existing release."
-        exit 1
-      else
-        echo "Warning: Overwriting existing release v${VERSION} at ${RELEASE_DIR}/"
-      fi
-    fi
-
-    echo "Copying zip to releases archive: ${RELEASE_DIR}/"
-    mkdir -p "${RELEASE_DIR}"
-    cp "${BUILD_DIR}/${PLUGINSLUG}.zip" "${RELEASE_DIR}/"
-  else
-    echo "Warning: Could not extract version from plugin header, skipping release copy."
-  fi
-else
+# Copy zip to releases archive (if RTP_RELEASE_DIR is set and version was extracted)
+if [[ -n "$RELEASE_BASE_DIR" ]] && [[ -n "$VERSION" ]]; then
+  echo "Copying zip to releases archive: ${RELEASE_DIR}/"
+  mkdir -p "${RELEASE_DIR}"
+  cp "${BUILD_DIR}/${PLUGINSLUG}.zip" "${RELEASE_DIR}/"
+elif [[ -z "$RELEASE_BASE_DIR" ]]; then
   echo "Note: RTP_RELEASE_DIR not set, skipping release archive copy."
 fi
 
