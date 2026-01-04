@@ -31,13 +31,15 @@ if [[ "$INIT_DISTIGNORE" == true ]]; then
   cat > "$DISTIGNORE_FILE" << 'EOF'
 # Ignore development files
 .wordpress-org/
+.runthings/
 .git/
 .gitignore
 node_modules/
-vendor/
 tests/
 build/
 .distignore
+.gitattributes
+BUILD.md
 
 # Ignore configuration files
 *.yml
