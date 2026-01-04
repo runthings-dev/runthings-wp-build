@@ -2,6 +2,8 @@
 
 Build distribution-ready WordPress plugin zip files.
 
+A simple build tool for WordPress plugins. Originally built for [runthings.dev](https://runthings.dev/) plugins, but works with any plugin following standard WP conventions.
+
 ## Installation
 
 ```bash
