@@ -9,6 +9,7 @@
     "type": "git",
     "url": "https://github.com/runthings-dev/runthings-wp-build.git"
   },
+  "os": ["darwin", "linux"],
   "keywords": ["wordpress", "plugin", "build"],
   "author": "runthingsdev",
   "license": "MIT"
