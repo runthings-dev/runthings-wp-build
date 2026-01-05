@@ -21,6 +21,10 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
+# Get the directory where this script is located
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+DISTIGNORE_TEMPLATE="${SCRIPT_DIR}/../templates/distignore"
+
 # Handle --init: write default .distignore and exit
 if [[ "$INIT_DISTIGNORE" == true ]]; then
   DISTIGNORE_FILE="$(pwd)/.distignore"
@@ -28,28 +32,7 @@ if [[ "$INIT_DISTIGNORE" == true ]]; then
     echo "Error: .distignore already exists. Use --force to overwrite."
     exit 1
   fi
-  cat > "$DISTIGNORE_FILE" << 'EOF'
-# Ignore development files
-.wordpress-org/
-.runthings/
-.git/
-.gitignore
-node_modules/
-tests/
-build/
-.distignore
-.gitattributes
-BUILD.md
-
-# Ignore configuration files
-*.yml
-*.lock
-
-# Ignore build scripts and macOS file system files
-/bin/
-.DS_Store
-__MACOSX
-EOF
+  cp "$DISTIGNORE_TEMPLATE" "$DISTIGNORE_FILE"
   echo "Created .distignore at $DISTIGNORE_FILE"
   exit 0
 fi
@@ -106,29 +89,7 @@ if [[ ! -f "${DISTIGNORE}" ]]; then
     echo "Aborting. Run 'rtp-build --init' to create a .distignore file."
     exit 1
   fi
-  # Create default .distignore
-  cat > "${DISTIGNORE}" << 'EOF'
-# Ignore development files
-.wordpress-org/
-.runthings/
-.git/
-.gitignore
-node_modules/
-tests/
-build/
-.distignore
-.gitattributes
-BUILD.md
-
-# Ignore configuration files
-*.yml
-*.lock
-
-# Ignore build scripts and macOS file system files
-/bin/
-.DS_Store
-__MACOSX
-EOF
+  cp "$DISTIGNORE_TEMPLATE" "${DISTIGNORE}"
   echo "Created .distignore - please review and commit before running the build again."
   exit 0
 fi
@@ -165,6 +126,7 @@ if [[ -f "${PLUGIN_DIR}/vendor/autoload.php" ]]; then
 fi
 
 # Generate the .pot file (with memory bump + sensible excludes)
+# This kept failing with memory exhaustion so we implented this logic to parse less
 echo "Generating .pot file..."
 export WP_CLI_PHP_ARGS="${WP_CLI_PHP_ARGS:--d memory_limit=1024M}"
 

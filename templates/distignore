@@ -1,0 +1,21 @@
+# Ignore development files
+.wordpress-org/
+.runthings/
+.git/
+.gitignore
+node_modules/
+tests/
+build/
+.distignore
+.gitattributes
+BUILD.md
+
+# Ignore configuration files
+*.yml
+*.lock
+
+# Ignore build scripts and macOS file system files
+/bin/
+.DS_Store
+__MACOSX
+
