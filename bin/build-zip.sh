@@ -97,6 +97,42 @@ if [[ ! -f "${PLUGIN_DIR}/${PLUGINSLUG}.php" ]]; then
   exit 1
 fi
 
+# Check if .distignore exists
+if [[ ! -f "${DISTIGNORE}" ]]; then
+  echo -e "${YELLOW}Warning:${NC} .distignore file not found."
+  read -p "Create one now? [Y/n] " -n 1 -r
+  echo
+  if [[ $REPLY =~ ^[Nn]$ ]]; then
+    echo "Aborting. Run 'rtp-build --init' to create a .distignore file."
+    exit 1
+  fi
+  # Create default .distignore
+  cat > "${DISTIGNORE}" << 'EOF'
+# Ignore development files
+.wordpress-org/
+.runthings/
+.git/
+.gitignore
+node_modules/
+tests/
+build/
+.distignore
+.gitattributes
+BUILD.md
+
+# Ignore configuration files
+*.yml
+*.lock
+
+# Ignore build scripts and macOS file system files
+/bin/
+.DS_Store
+__MACOSX
+EOF
+  echo "Created .distignore - please review and commit before running the build again."
+  exit 0
+fi
+
 # Early check: if RTP_RELEASE_DIR is set, verify we can release before building
 if [[ -n "$RELEASE_BASE_DIR" ]]; then
   VERSION=$(grep -m1 " \* Version:" "${PLUGIN_DIR}/${PLUGINSLUG}.php" | sed 's/.*Version: *//' | tr -d '[:space:]')
