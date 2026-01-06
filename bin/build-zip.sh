@@ -92,15 +92,29 @@ if [[ "$GENERATE_CHANGELOG" == true ]]; then
   PROMPT=$(cat "$CHANGELOG_PROMPT_TEMPLATE")
   PROMPT="${PROMPT//\{\{COMMITS\}\}/$COMMITS}"
 
-  # Copy to clipboard (macOS)
+  # Copy to clipboard
   if command -v pbcopy &> /dev/null; then
     echo "$PROMPT" | pbcopy
+    COPIED=true
+  elif command -v xclip &> /dev/null; then
+    echo "$PROMPT" | xclip -selection clipboard
+    COPIED=true
+  elif command -v xsel &> /dev/null; then
+    echo "$PROMPT" | xsel --clipboard
+    COPIED=true
+  else
+    COPIED=false
+  fi
+
+  if [[ "$COPIED" == true ]]; then
     echo -e "${GREEN}Changelog prompt copied to clipboard!${NC}"
     echo ""
     echo "Commits since ${LAST_TAG:-'start'}:"
     echo "$COMMITS"
   else
     # Fallback: just print it
+    echo -e "${YELLOW}No clipboard tool found (pbcopy/xclip/xsel), printing prompt:${NC}"
+    echo ""
     echo "$PROMPT"
   fi
   exit 0
