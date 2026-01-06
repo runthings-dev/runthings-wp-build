@@ -25,6 +25,7 @@ The plugin directory must contain a main plugin file named `{plugin-slug}.php` (
 | Option | Description |
 |--------|-------------|
 | `--init` | Create a default `.distignore` file in the current directory |
+| `--changelog` | Generate a changelog prompt from commits since last tag and copy to clipboard |
 | `-f`, `--force` | Overwrite existing release archive (or `.distignore` with `--init`) |
 
 ## Environment Variables
