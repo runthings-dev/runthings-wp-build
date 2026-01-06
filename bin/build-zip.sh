@@ -117,6 +117,7 @@ check_tool() {
 }
 
 # Check for required tools
+check_tool git
 check_tool rsync
 check_tool zip
 check_tool mktemp
