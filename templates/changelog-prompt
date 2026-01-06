@@ -1,0 +1,23 @@
+Generate a changelog entry from the git commits below.
+
+Guidelines:
+- Focus on user-facing changes only (skip internal refactors, code cleanup, CI/build changes)
+- Keep entries semi-technical but understandable to plugin users
+- Use concise bullet points
+- Prioritise: new features > improvements > bug fixes
+- Group related commits into single entries where appropriate
+- Generate output in both WordPress readme.txt format AND markdown format
+
+Commits since last release:
+{{COMMITS}}
+
+---
+
+Actions:
+
+1. Update readme.txt changelog section
+2. Update readme.txt upgrade notice - keep max 3 versions, remove older entries
+3. Mirror the same changes to README.md if it has a changelog section
+
+Do NOT modify version numbers, stable tags, or any other version references.
+

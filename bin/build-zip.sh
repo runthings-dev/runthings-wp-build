@@ -1,8 +1,22 @@
 #!/bin/bash
 
+# Colors (only if TTY and NO_COLOR not set)
+if [[ -z "$NO_COLOR" ]] && [[ -t 1 ]]; then
+  RED='\033[0;31m'
+  GREEN='\033[0;32m'
+  YELLOW='\033[0;33m'
+  NC='\033[0m'
+else
+  RED=''
+  GREEN=''
+  YELLOW=''
+  NC=''
+fi
+
 # Parse arguments
 FORCE_OVERWRITE=false
 INIT_DISTIGNORE=false
+GENERATE_CHANGELOG=false
 while [[ $# -gt 0 ]]; do
   case $1 in
     -f|--force)
@@ -13,48 +27,83 @@ while [[ $# -gt 0 ]]; do
       INIT_DISTIGNORE=true
       shift
       ;;
+    --changelog)
+      GENERATE_CHANGELOG=true
+      shift
+      ;;
     *)
-      echo "Unknown option: $1"
-      echo "Usage: rtp-build [--force|-f] [--init]"
+      echo -e "${RED}Unknown option:${NC} $1"
+      echo "Usage: rtp-build [--force|-f] [--init] [--changelog]"
       exit 1
       ;;
   esac
 done
 
-# Get the directory where this script is located
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-DISTIGNORE_TEMPLATE="${SCRIPT_DIR}/../templates/distignore"
+# Get the directory where this script is located (follow symlinks for npm global install)
+SCRIPT_SOURCE="${BASH_SOURCE[0]}"
+while [[ -L "$SCRIPT_SOURCE" ]]; do
+  SCRIPT_DIR="$(cd "$(dirname "$SCRIPT_SOURCE")" && pwd)"
+  SCRIPT_SOURCE="$(readlink "$SCRIPT_SOURCE")"
+  [[ "$SCRIPT_SOURCE" != /* ]] && SCRIPT_SOURCE="$SCRIPT_DIR/$SCRIPT_SOURCE"
+done
+SCRIPT_DIR="$(cd "$(dirname "$SCRIPT_SOURCE")" && pwd)"
 
-# Handle --init: write default .distignore and exit
-if [[ "$INIT_DISTIGNORE" == true ]]; then
-  DISTIGNORE_FILE="$(pwd)/.distignore"
-  if [[ -f "$DISTIGNORE_FILE" ]] && [[ "$FORCE_OVERWRITE" == false ]]; then
-    echo "Error: .distignore already exists. Use --force to overwrite."
-    exit 1
-  fi
-  cp "$DISTIGNORE_TEMPLATE" "$DISTIGNORE_FILE"
-  echo "Created .distignore at $DISTIGNORE_FILE"
-  exit 0
-fi
+# Templates
+DISTIGNORE_TEMPLATE="${SCRIPT_DIR}/../templates/distignore"
+CHANGELOG_PROMPT_TEMPLATE="${SCRIPT_DIR}/../templates/changelog-prompt"
 
 # Globals
 PLUGIN_DIR="$(pwd)"
 PLUGINSLUG="$(basename "$PLUGIN_DIR")"
 BUILD_DIR="${PLUGIN_DIR}/build"
-DISTIGNORE="${PLUGIN_DIR}/.distignore"
+DISTIGNORE_FILE="${PLUGIN_DIR}/.distignore"
 LANG_DIR="languages"
 POT_FILE="$LANG_DIR/$PLUGINSLUG.pot"
 RELEASE_BASE_DIR="${RTP_RELEASE_DIR:-}"
 
-# Colors (only if TTY and NO_COLOR not set)
-if [[ -z "$NO_COLOR" ]] && [[ -t 1 ]]; then
-  RED='\033[0;31m'
-  YELLOW='\033[0;33m'
-  NC='\033[0m'
-else
-  RED=''
-  YELLOW=''
-  NC=''
+# Handle --init: write default .distignore and exit
+if [[ "$INIT_DISTIGNORE" == true ]]; then
+  if [[ -f "$DISTIGNORE_FILE" ]] && [[ "$FORCE_OVERWRITE" == false ]]; then
+    echo -e "${RED}Error:${NC} .distignore already exists. Use --force to overwrite."
+    exit 1
+  fi
+  cp "$DISTIGNORE_TEMPLATE" "$DISTIGNORE_FILE"
+  echo -e "${GREEN}Created${NC} .distignore at $DISTIGNORE_FILE"
+  exit 0
+fi
+
+# Handle --changelog: generate changelog prompt and copy to clipboard
+if [[ "$GENERATE_CHANGELOG" == true ]]; then
+  # Get commits since last tag
+  LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null)
+  if [[ -n "$LAST_TAG" ]]; then
+    COMMITS=$(git log "${LAST_TAG}..HEAD" --oneline)
+  else
+    COMMITS=$(git log --oneline -20)
+    echo -e "${YELLOW}Warning:${NC} No tags found, using last 20 commits"
+  fi
+
+  if [[ -z "$COMMITS" ]]; then
+    echo -e "${RED}Error:${NC} No commits found since last tag (${LAST_TAG})"
+    exit 1
+  fi
+
+  # Read template and inject commits
+  PROMPT=$(cat "$CHANGELOG_PROMPT_TEMPLATE")
+  PROMPT="${PROMPT//\{\{COMMITS\}\}/$COMMITS}"
+
+  # Copy to clipboard (macOS)
+  if command -v pbcopy &> /dev/null; then
+    echo "$PROMPT" | pbcopy
+    echo -e "${GREEN}Changelog prompt copied to clipboard!${NC}"
+    echo ""
+    echo "Commits since ${LAST_TAG:-'start'}:"
+    echo "$COMMITS"
+  else
+    # Fallback: just print it
+    echo "$PROMPT"
+  fi
+  exit 0
 fi
 
 # That's all, stop editing! Happy building.
@@ -81,7 +130,7 @@ if [[ ! -f "${PLUGIN_DIR}/${PLUGINSLUG}.php" ]]; then
 fi
 
 # Check if .distignore exists
-if [[ ! -f "${DISTIGNORE}" ]]; then
+if [[ ! -f "${DISTIGNORE_FILE}" ]]; then
   echo -e "${YELLOW}Warning:${NC} .distignore file not found."
   read -p "Create one now? [Y/n] " -n 1 -r
   echo
@@ -89,7 +138,7 @@ if [[ ! -f "${DISTIGNORE}" ]]; then
     echo "Aborting. Run 'rtp-build --init' to create a .distignore file."
     exit 1
   fi
-  cp "$DISTIGNORE_TEMPLATE" "${DISTIGNORE}"
+  cp "$DISTIGNORE_TEMPLATE" "${DISTIGNORE_FILE}"
   echo "Created .distignore - please review and commit before running the build again."
   exit 0
 fi
@@ -168,7 +217,7 @@ trap cleanup EXIT
 
 # Copy all files to the temporary directory, excluding the patterns in .distignore
 echo "Copying files to temporary directory, excluding patterns in .distignore..."
-if ! rsync -av --exclude-from="${DISTIGNORE}" "${PLUGIN_DIR}/" "${TEMP_DIR}/"; then
+if ! rsync -av --exclude-from="${DISTIGNORE_FILE}" "${PLUGIN_DIR}/" "${TEMP_DIR}/"; then
   echo -e "${RED}Error:${NC} rsync failed."
   exit 1
 fi
