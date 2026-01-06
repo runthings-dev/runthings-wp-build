@@ -38,11 +38,13 @@ The plugin directory must contain a main plugin file named `{plugin-slug}.php` (
 
 The following tools must be installed and available in your PATH:
 
+- `git`
 - `rsync`
 - `zip`
 - `mktemp`
 - `wp` (WP-CLI)
 - `composer` (optional, only if your plugin uses Composer)
+- `pbcopy`, `xclip`, or `xsel` (optional, for `--changelog` clipboard support)
 
 ## What It Does
 
