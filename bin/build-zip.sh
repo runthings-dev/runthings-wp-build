@@ -17,6 +17,7 @@ fi
 FORCE_OVERWRITE=false
 INIT_DISTIGNORE=false
 GENERATE_CHANGELOG=false
+DEPLOY_WORKFLOWS=()
 while [[ $# -gt 0 ]]; do
   case $1 in
     -f|--force)
@@ -31,9 +32,24 @@ while [[ $# -gt 0 ]]; do
       GENERATE_CHANGELOG=true
       shift
       ;;
+    --workflows)
+      DEPLOY_WORKFLOWS=("all")
+      shift
+      ;;
+    --workflows:*)
+      WORKFLOW_NAME="${1#--workflows:}"
+      # Validate: only alphanumeric, hyphen, underscore
+      if [[ ! "$WORKFLOW_NAME" =~ ^[a-zA-Z0-9_-]+$ ]]; then
+        echo -e "${RED}Error:${NC} Invalid workflow name: $WORKFLOW_NAME"
+        echo "Workflow names can only contain letters, numbers, hyphens, and underscores."
+        exit 1
+      fi
+      DEPLOY_WORKFLOWS+=("$WORKFLOW_NAME")
+      shift
+      ;;
     *)
       echo -e "${RED}Unknown option:${NC} $1"
-      echo "Usage: rtp-build [--force|-f] [--init] [--changelog]"
+      echo "Usage: rtp-build [--force|-f] [--init] [--changelog] [--workflows|--workflows:<name>]"
       exit 1
       ;;
   esac
@@ -51,6 +67,7 @@ SCRIPT_DIR="$(cd "$(dirname "$SCRIPT_SOURCE")" && pwd)"
 # Templates
 DISTIGNORE_TEMPLATE="${SCRIPT_DIR}/../templates/distignore"
 CHANGELOG_PROMPT_TEMPLATE="${SCRIPT_DIR}/../templates/changelog-prompt"
+WORKFLOWS_TEMPLATE_DIR="${SCRIPT_DIR}/../templates/workflows"
 
 # Globals
 PLUGIN_DIR="$(pwd)"
@@ -120,6 +137,126 @@ if [[ "$GENERATE_CHANGELOG" == true ]]; then
   exit 0
 fi
 
+# Function to parse workflow version from header
+# Returns version string or empty if not a managed workflow
+parse_workflow_version() {
+  local file="$1"
+  if [[ -f "$file" ]]; then
+    local header
+    header=$(head -1 "$file")
+    if [[ "$header" =~ ^#\ runthings-wp-build:[a-zA-Z0-9_-]+\ v(.+)$ ]]; then
+      echo "${BASH_REMATCH[1]}"
+    fi
+  fi
+}
+
+# Function to get template version
+get_template_version() {
+  local workflow_name="$1"
+  local template_file="${WORKFLOWS_TEMPLATE_DIR}/${workflow_name}.yml"
+  parse_workflow_version "$template_file"
+}
+
+# Function to check if version has -custom suffix
+is_custom_version() {
+  local version="$1"
+  [[ "$version" == *-custom* ]]
+}
+
+# Function to ensure .github is in .distignore
+ensure_github_in_distignore() {
+  if [[ ! -f "$DISTIGNORE_FILE" ]]; then
+    return 0
+  fi
+
+  if grep -q "^\.github" "$DISTIGNORE_FILE"; then
+    return 0
+  fi
+
+  # Check if .git/ exists in distignore, add .github/ after it
+  if grep -q "^\.git/" "$DISTIGNORE_FILE"; then
+    sed -i '' 's/^\.git\/$/&\n.github\//' "$DISTIGNORE_FILE"
+    echo -e "${GREEN}Added${NC} .github/ to .distignore (after .git/)"
+  else
+    echo ".github/" >> "$DISTIGNORE_FILE"
+    echo -e "${GREEN}Added${NC} .github/ to .distignore"
+  fi
+}
+
+# Function to deploy a single workflow
+deploy_workflow() {
+  local workflow_name="$1"
+  local template_file="${WORKFLOWS_TEMPLATE_DIR}/${workflow_name}.yml"
+  local target_dir="${PLUGIN_DIR}/.github/workflows"
+  local target_file="${target_dir}/${workflow_name}.yml"
+
+  # Check template exists
+  if [[ ! -f "$template_file" ]]; then
+    echo -e "${RED}Error:${NC} Workflow template not found: ${workflow_name}.yml"
+    return 1
+  fi
+
+  local template_version
+  template_version=$(get_template_version "$workflow_name")
+
+  # Create target directory if needed
+  mkdir -p "$target_dir"
+
+  # Check if target already exists
+  if [[ -f "$target_file" ]]; then
+    local existing_version
+    existing_version=$(parse_workflow_version "$target_file")
+
+    if [[ -z "$existing_version" ]]; then
+      # Not a managed workflow file
+      if [[ "$FORCE_OVERWRITE" == false ]]; then
+        echo -e "${YELLOW}Skipping${NC} ${workflow_name}.yml (not a managed workflow, use --force to overwrite)"
+        return 0
+      fi
+    elif is_custom_version "$existing_version"; then
+      echo -e "${YELLOW}Skipping${NC} ${workflow_name}.yml (custom version: v${existing_version})"
+      return 0
+    elif [[ "$existing_version" == "$template_version" ]]; then
+      echo -e "${GREEN}Current${NC} ${workflow_name}.yml (v${existing_version})"
+      return 0
+    else
+      if [[ "$FORCE_OVERWRITE" == false ]]; then
+        echo -e "${YELLOW}Skipping${NC} ${workflow_name}.yml (v${existing_version} -> v${template_version}, use --force to update)"
+        return 0
+      fi
+    fi
+  fi
+
+  cp "$template_file" "$target_file"
+  echo -e "${GREEN}Deployed${NC} ${workflow_name}.yml (v${template_version})"
+}
+
+# Handle --workflows: deploy workflow templates
+if [[ ${#DEPLOY_WORKFLOWS[@]} -gt 0 ]]; then
+  echo "Deploying workflows..."
+
+  # Ensure .github is in distignore
+  ensure_github_in_distignore
+
+  if [[ "${DEPLOY_WORKFLOWS[0]}" == "all" ]]; then
+    # Deploy all workflows in template dir
+    for template_file in "${WORKFLOWS_TEMPLATE_DIR}"/*.yml; do
+      if [[ -f "$template_file" ]]; then
+        workflow_name=$(basename "$template_file" .yml)
+        deploy_workflow "$workflow_name"
+      fi
+    done
+  else
+    # Deploy specified workflows
+    for workflow_name in "${DEPLOY_WORKFLOWS[@]}"; do
+      deploy_workflow "$workflow_name"
+    done
+  fi
+
+  echo -e "${GREEN}Workflow deployment complete.${NC}"
+  exit 0
+fi
+
 # That's all, stop editing! Happy building.
 
 # Function to check for required tools
@@ -156,6 +293,52 @@ if [[ ! -f "${DISTIGNORE_FILE}" ]]; then
   cp "$DISTIGNORE_TEMPLATE" "${DISTIGNORE_FILE}"
   echo "Created .distignore - please review and commit before running the build again."
   exit 0
+fi
+
+# Check workflow versions if any managed workflows exist
+WORKFLOWS_DIR="${PLUGIN_DIR}/.github/workflows"
+WORKFLOW_OUTDATED=false
+if [[ -d "$WORKFLOWS_DIR" ]]; then
+  for workflow_file in "${WORKFLOWS_DIR}"/*.yml; do
+    if [[ -f "$workflow_file" ]]; then
+      workflow_name=$(basename "$workflow_file" .yml)
+      existing_version=$(parse_workflow_version "$workflow_file")
+
+      # Skip if not a managed workflow
+      if [[ -z "$existing_version" ]]; then
+        continue
+      fi
+
+      # Check if custom version
+      if is_custom_version "$existing_version"; then
+        echo -e "${YELLOW}ℹ${NC} ${workflow_name}.yml has custom version (v${existing_version}), skipping update check"
+        continue
+      fi
+
+      # Get template version
+      template_version=$(get_template_version "$workflow_name")
+
+      # Skip if template doesn't exist (might be a workflow from elsewhere)
+      if [[ -z "$template_version" ]]; then
+        continue
+      fi
+
+      # Compare versions
+      if [[ "$existing_version" != "$template_version" ]]; then
+        echo -e "${RED}Outdated:${NC} ${workflow_name}.yml (v${existing_version} -> v${template_version})"
+        WORKFLOW_OUTDATED=true
+      fi
+    fi
+  done
+
+  if [[ "$WORKFLOW_OUTDATED" == true ]]; then
+    if [[ "$FORCE_OVERWRITE" == false ]]; then
+      echo -e "${RED}Error:${NC} Outdated workflows detected. Run 'rtp-build --workflows' to update, or use --force to continue anyway."
+      exit 1
+    else
+      echo -e "${YELLOW}Warning:${NC} Continuing with outdated workflows (--force)"
+    fi
+  fi
 fi
 
 # Early check: if RTP_RELEASE_DIR is set, verify we can release before building

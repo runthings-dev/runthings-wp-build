@@ -2,6 +2,7 @@
 .wordpress-org/
 .runthings/
 .git/
+.github/
 .gitignore
 node_modules/
 tests/
