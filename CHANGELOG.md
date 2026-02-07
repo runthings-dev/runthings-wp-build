@@ -1,5 +1,9 @@
 # Changelog
 
+## 3.3.0 - 7th February 2026
+- Added `--workflows` option to deploy workflow templates
+- Added `--workflows:<name>` option to deploy specific workflow templates
+
 ## 3.2.0 - 6th January 2026
 - Added `--changelog` option to generate changelog prompt from commits since last tag
 - Added Linux clipboard support (`xclip`, `xsel`) alongside macOS `pbcopy`
