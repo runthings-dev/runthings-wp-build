@@ -6,7 +6,9 @@ Guidelines:
 - Use concise bullet points
 - Prioritise: new features > improvements > bug fixes
 - Group related commits into single entries where appropriate
-- Generate output in both WordPress readme.txt format AND markdown format
+- Generate output in both WordPress readme.txt format AND github readme.md format
+- Pick the next version number based on semver
+- Match the header formats of the previous entries
 
 Commits since last release:
 {{COMMITS}}
@@ -17,7 +19,7 @@ Actions:
 
 1. Update readme.txt changelog section
 2. Update readme.txt upgrade notice - keep max 3 versions, remove older entries
-3. Mirror the same changes to README.md if it has a changelog section
+3. Mirror the same changes to README.md in its changelog section
 
 Do NOT modify version numbers, stable tags, or any other version references.
 
