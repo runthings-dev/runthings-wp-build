@@ -17,6 +17,7 @@ fi
 FORCE_OVERWRITE=false
 INIT_DISTIGNORE=false
 GENERATE_CHANGELOG=false
+LOCAL_BUILD=false
 DEPLOY_WORKFLOWS=()
 while [[ $# -gt 0 ]]; do
   case $1 in
@@ -30,6 +31,10 @@ while [[ $# -gt 0 ]]; do
       ;;
     --changelog)
       GENERATE_CHANGELOG=true
+      shift
+      ;;
+    --local)
+      LOCAL_BUILD=true
       shift
       ;;
     --workflows)
@@ -49,7 +54,7 @@ while [[ $# -gt 0 ]]; do
       ;;
     *)
       echo -e "${RED}Unknown option:${NC} $1"
-      echo "Usage: rtp-build [--force|-f] [--init] [--changelog] [--workflows|--workflows:<name>]"
+      echo "Usage: rtp-build [--force|-f] [--init] [--changelog] [--local] [--workflows|--workflows:<name>]"
       exit 1
       ;;
   esac
@@ -274,6 +279,10 @@ check_tool zip
 check_tool mktemp
 check_tool wp
 
+if [[ "$LOCAL_BUILD" == true ]]; then
+  echo -e "${YELLOW}Local build mode:${NC} skipping release archive copy and git/tag/push."
+fi
+
 # Check if the script is being run from the root directory of the plugin
 if [[ ! -f "${PLUGIN_DIR}/${PLUGINSLUG}.php" ]]; then
   echo -e "${RED}Error:${NC} This script should be run from the root directory of the plugin."
@@ -342,7 +351,7 @@ if [[ -d "$WORKFLOWS_DIR" ]]; then
 fi
 
 # Early check: if RTP_RELEASE_DIR is set, verify we can release before building
-if [[ -n "$RELEASE_BASE_DIR" ]]; then
+if [[ "$LOCAL_BUILD" == false ]] && [[ -n "$RELEASE_BASE_DIR" ]]; then
   VERSION=$(grep -m1 " \* Version:" "${PLUGIN_DIR}/${PLUGINSLUG}.php" | sed 's/.*Version: *//' | tr -d '[:space:]')
 
   if [[ -n "$VERSION" ]]; then
@@ -433,16 +442,18 @@ echo "Zip file created at ${BUILD_DIR}/${PLUGINSLUG}.zip"
 cd "${PLUGIN_DIR}"
 
 # Copy zip to releases archive (if RTP_RELEASE_DIR is set and version was extracted)
-if [[ -n "$RELEASE_BASE_DIR" ]] && [[ -n "$VERSION" ]]; then
+if [[ "$LOCAL_BUILD" == false ]] && [[ -n "$RELEASE_BASE_DIR" ]] && [[ -n "$VERSION" ]]; then
   echo "Copying zip to releases archive: ${RELEASE_DIR}/"
   mkdir -p "${RELEASE_DIR}"
   cp "${BUILD_DIR}/${PLUGINSLUG}.zip" "${RELEASE_DIR}/"
-elif [[ -z "$RELEASE_BASE_DIR" ]]; then
+elif [[ "$LOCAL_BUILD" == false ]] && [[ -z "$RELEASE_BASE_DIR" ]]; then
   echo "Note: RTP_RELEASE_DIR not set, skipping release archive copy."
 fi
 
 # Commit, tag, and push release
-if [[ -n "$VERSION" ]]; then
+if [[ "$LOCAL_BUILD" == true ]]; then
+  echo "Local build mode enabled, skipping git operations."
+elif [[ -n "$VERSION" ]]; then
   echo "Committing release changes..."
   git add -A
   if ! git commit -m "chore(release): deploy v${VERSION}"; then
