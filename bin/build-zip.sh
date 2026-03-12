@@ -272,6 +272,39 @@ check_tool() {
   fi
 }
 
+# Extract the plugin version from the main plugin file header.
+# Accepts common PHPDoc-style variants like `* Version:`, ` * Version:`,
+# or plain `Version:` within the opening header block.
+extract_plugin_version() {
+  local plugin_file="$1"
+
+  awk '
+    BEGIN {
+      in_header = 0
+    }
+    /^<\?php/ {
+      next
+    }
+    /^[[:space:]]*\/\*\*/ {
+      in_header = 1
+      next
+    }
+    in_header && /\*\// {
+      exit
+    }
+    in_header {
+      line = $0
+      sub(/^[[:space:]]*\*[[:space:]]*/, "", line)
+      if (line ~ /^[Vv]ersion:[[:space:]]*/) {
+        sub(/^[Vv]ersion:[[:space:]]*/, "", line)
+        gsub(/^[[:space:]]+|[[:space:]]+$/, "", line)
+        print line
+        exit
+      }
+    }
+  ' "$plugin_file"
+}
+
 # Check for required tools
 check_tool git
 check_tool rsync
@@ -352,7 +385,7 @@ fi
 
 # Early check: if RTP_RELEASE_DIR is set, verify we can release before building
 if [[ "$LOCAL_BUILD" == false ]] && [[ -n "$RELEASE_BASE_DIR" ]]; then
-  VERSION=$(grep -m1 " \* Version:" "${PLUGIN_DIR}/${PLUGINSLUG}.php" | sed 's/.*Version: *//' | tr -d '[:space:]')
+  VERSION=$(extract_plugin_version "${PLUGIN_DIR}/${PLUGINSLUG}.php")
 
   if [[ -n "$VERSION" ]]; then
     RELEASE_DIR="${RELEASE_BASE_DIR}/${PLUGINSLUG}/releases/v${VERSION}"
