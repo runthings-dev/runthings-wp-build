@@ -1,5 +1,11 @@
 # Changelog
 
+## 3.4.0 - 16th May 2026
+- Fixed version extraction would break if plugin meta started with `/*` instead of `/**`
+- Fixed version extraction would break if plugin meta was not in first comment block
+- Added `--local` option to test build without git deploy
+- Updated changelog prompt
+
 ## 3.3.0 - 7th February 2026
 - Added `--workflows` option to deploy workflow templates
 - Added `--workflows:<name>` option to deploy specific workflow templates
