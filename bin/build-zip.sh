@@ -273,8 +273,8 @@ check_tool() {
 }
 
 # Extract the plugin version from the main plugin file header.
-# Accepts common PHPDoc-style variants like `* Version:`, ` * Version:`,
-# or plain `Version:` within the opening header block.
+# Accepts `/*` and `/**` comments, with common variants like `* Version:`,
+# ` * Version:`, or plain `Version:` inside the plugin header block.
 extract_plugin_version() {
   local plugin_file="$1"
 
@@ -285,12 +285,13 @@ extract_plugin_version() {
     /^<\?php/ {
       next
     }
-    /^[[:space:]]*\/\*\*/ {
+    /^[[:space:]]*\/\*/ {
       in_header = 1
       next
     }
     in_header && /\*\// {
-      exit
+      in_header = 0
+      next
     }
     in_header {
       line = $0
