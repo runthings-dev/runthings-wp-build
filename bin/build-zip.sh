@@ -456,17 +456,25 @@ cleanup() {
 # Ensure the cleanup function is called on script exit
 trap cleanup EXIT
 
-# Copy all files to the temporary directory, excluding the patterns in .distignore
+# Stage files inside a stable plugin folder so WordPress does not derive the
+# installation directory from the uploaded ZIP filename (which may have a suffix).
+STAGED_PLUGIN_DIR="${TEMP_DIR}/${PLUGINSLUG}"
+if ! mkdir -p "${STAGED_PLUGIN_DIR}"; then
+  echo -e "${RED}Error:${NC} Failed to create staged plugin directory."
+  exit 1
+fi
+
+# Keep the rsync source root unchanged so anchored .distignore patterns still apply.
 echo "Copying files to temporary directory, excluding patterns in .distignore..."
-if ! rsync -av --exclude-from="${DISTIGNORE_FILE}" "${PLUGIN_DIR}/" "${TEMP_DIR}/"; then
+if ! rsync -av --exclude-from="${DISTIGNORE_FILE}" "${PLUGIN_DIR}/" "${STAGED_PLUGIN_DIR}/"; then
   echo -e "${RED}Error:${NC} rsync failed."
   exit 1
 fi
 
-# Create the zip file from the temporary directory
-cd "${TEMP_DIR}"
+# Include the plugin folder itself as the ZIP's single top-level entry.
+cd "${TEMP_DIR}" || exit 1
 echo "Creating zip file..."
-if ! zip -r "${BUILD_DIR}/${PLUGINSLUG}.zip" .; then
+if ! zip -r "${BUILD_DIR}/${PLUGINSLUG}.zip" "${PLUGINSLUG}"; then
   echo -e "${RED}Error:${NC} zip failed."
   exit 1
 fi
