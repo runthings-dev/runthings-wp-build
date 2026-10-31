@@ -1,5 +1,8 @@
 # Changelog
 
+## 3.5.0 - 31st October 2026
+- Fixed plugin ZIPs to include a top-level plugin folder, preventing renamed ZIP files from installing a second copy instead of replacing the existing plugin
+
 ## 3.4.0 - 16th May 2026
 - Fixed version extraction would break if plugin meta started with `/*` instead of `/**`
 - Fixed version extraction would break if plugin meta was not in first comment block
