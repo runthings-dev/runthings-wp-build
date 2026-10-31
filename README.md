@@ -123,6 +123,10 @@ __MACOSX
 - `build/{plugin-slug}.zip` - The distribution-ready zip file
 - `{RTP_RELEASE_DIR}/{plugin-slug}/releases/v{version}/{plugin-slug}.zip` - Archived release (optional)
 
+The ZIP contains a single top-level `{plugin-slug}/` folder, with the main plugin file at `{plugin-slug}/{plugin-slug}.php`. The slug comes from the project directory name and must match the existing installation's folder name for WordPress to offer replacement when uploading the ZIP.
+
+This keeps the installation folder stable even if the ZIP filename changes (for example, a download adds `-1`). With files at the ZIP root, [WordPress derives the installation folder from the ZIP filename](https://developer.wordpress.org/reference/classes/wp_upgrader/install_package/), which can cause a separate installation instead of replacing the existing plugin.
+
 ## Author
 
 Matthew Harris @ [runthings.dev](https://runthings.dev/)
