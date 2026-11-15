@@ -43,16 +43,18 @@ The following tools must be installed and available in your PATH:
 - `zip`
 - `mktemp`
 - `wp` (WP-CLI)
+- `npm` (only if your plugin has a `package.json`)
 - `composer` (optional, only if your plugin uses Composer)
 - `pbcopy`, `xclip`, or `xsel` (optional, for `--changelog` clipboard support)
 
 ## What It Does
 
-1. **Regenerates Composer autoloader** (if `vendor/autoload.php` exists)
-2. **Generates `.pot` translation file** using WP-CLI with sensible excludes
-3. **Creates clean zip** excluding development files via `.distignore`
-4. **Archives release** to versioned directory (if `RTP_RELEASE_DIR` is set)
-5. **Commits, tags, and pushes** the release to git remote
+1. **Syncs npm package versions** to the main plugin header (if `package.json` exists), updating `package.json` and existing npm lock files without running npm lifecycle scripts or creating an npm commit or tag
+2. **Regenerates Composer autoloader** (if `vendor/autoload.php` exists)
+3. **Generates `.pot` translation file** using WP-CLI with sensible excludes
+4. **Creates clean zip** excluding development files via `.distignore`
+5. **Archives release** to versioned directory (if `RTP_RELEASE_DIR` is set)
+6. **Commits, tags, and pushes** the release to git remote
 
 ## Workflow
 
@@ -74,7 +76,7 @@ The following tools must be installed and available in your PATH:
 
 1. **Commit your changelog** - commit any changelog and upgrade notice changes first, as `docs(readme): changelog for v{version}`
 
-2. **Update version numbers** - update all version references (plugin header, readme.txt stable tag, version constants/defines) to the new version. **Leave these changes uncommitted.**
+2. **Update version numbers** - update the plugin header, readme.txt stable tag, and version constants/defines to the new version. `rtp-build` syncs `package.json` and existing npm lock files from the plugin header automatically, including in `--local` mode. **Leave these changes uncommitted.**
 
 3. **Run the build:**
    ```bash
@@ -82,6 +84,7 @@ The following tools must be installed and available in your PATH:
    ```
 
    This will:
+   - Sync npm package versions using `npm version "$VERSION" --no-git-tag-version --ignore-scripts --allow-same-version`
    - Generate the `.pot` file
    - Create the distribution zip
    - Commit all uncommitted changes with message `chore(release): deploy v{version}`
