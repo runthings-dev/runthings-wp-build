@@ -1,3 +1,9 @@
+---
+name: rtp-bump-tested-up-to
+disable-model-invocation: true
+description: Prepare a WordPress plugin patch release to update its Tested up to metadata, readmes and version fields, then publish through rtp-build after human confirmation.
+---
+
 # rtp-bump-tested-up-to
 
 Prepare a patch release that updates WordPress tested-up-to metadata, then pause
