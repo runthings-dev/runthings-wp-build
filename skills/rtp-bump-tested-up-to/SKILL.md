@@ -43,10 +43,11 @@ details or modifying plugin files.
    fetching fails, stop and report that being up to date could not be verified.
 4. Compare the current branch with its upstream:
    - **Equal:** Continue.
+   - **Ahead only:** Continue and report the unpublished commits for review.
    - **Behind only:** Fast-forward to the fetched upstream with
      `git merge --ff-only @{upstream}`. Do not create a merge commit or rebase.
-   - **Ahead or diverged:** Stop and report the unpublished commits or divergence.
-     Do not push or reconcile branches automatically.
+   - **Diverged:** Stop and report the divergence. Do not push or reconcile
+     branches automatically.
 5. After a fast-forward, check Git status and the upstream comparison again.
    Continue only when the worktree is clean and the branch matches its upstream.
    If the fast-forward fails, stop without attempting a repair.
@@ -86,9 +87,8 @@ Read the plugin's build instructions and identify the files needed for the relea
 
 ## 3. Prepare the release
 
-1. Check changes since the last release tag. A clean, synchronized repository
-   can still contain unreleased functional changes. If present, stop and explain
-   that they would be included in this compatibility release.
+1. Check changes since the last release tag, including unpublished commits.
+   Stop and report any unreleased functional changes.
 2. Before the first build, check for a running watcher; ask if its status cannot
    be established. Reuse its output and avoid duplicate builds.
 3. Update `Tested up to` in `readme.txt` to the target WordPress branch. If it
