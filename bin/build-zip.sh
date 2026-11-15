@@ -384,10 +384,10 @@ if [[ -d "$WORKFLOWS_DIR" ]]; then
   fi
 fi
 
+VERSION=$(extract_plugin_version "${PLUGIN_DIR}/${PLUGINSLUG}.php")
+
 # Early check: if RTP_RELEASE_DIR is set, verify we can release before building
 if [[ "$LOCAL_BUILD" == false ]] && [[ -n "$RELEASE_BASE_DIR" ]]; then
-  VERSION=$(extract_plugin_version "${PLUGIN_DIR}/${PLUGINSLUG}.php")
-
   if [[ -n "$VERSION" ]]; then
     RELEASE_DIR="${RELEASE_BASE_DIR}/${PLUGINSLUG}/releases/v${VERSION}"
 
@@ -403,6 +403,22 @@ if [[ "$LOCAL_BUILD" == false ]] && [[ -n "$RELEASE_BASE_DIR" ]]; then
     fi
   else
     echo -e "${YELLOW}Warning:${NC} Could not extract version from plugin header, will skip release copy."
+  fi
+fi
+
+# Keep npm package metadata aligned with the plugin header before staging files.
+if [[ -f "${PLUGIN_DIR}/package.json" ]]; then
+  check_tool npm
+
+  if [[ -z "$VERSION" ]]; then
+    echo -e "${RED}Error:${NC} Could not extract plugin version to update npm package files."
+    exit 1
+  fi
+
+  echo "Updating npm package files to v${VERSION}..."
+  if ! npm version "$VERSION" --no-git-tag-version --ignore-scripts --allow-same-version; then
+    echo -e "${RED}Error:${NC} Failed to update npm package versions."
+    exit 1
   fi
 fi
 
