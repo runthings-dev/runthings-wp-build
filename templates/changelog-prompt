@@ -7,6 +7,7 @@ Guidelines:
 - Prioritise: new features > improvements > bug fixes
 - Group related commits into single entries where appropriate
 - Generate output in both WordPress readme.txt format AND github readme.md format
+- Use identical description text for each changelog item in readme.txt and README.md; only the formatting should differ
 - Pick the next version number based on semver
 - Match the header formats of the previous entries
 
