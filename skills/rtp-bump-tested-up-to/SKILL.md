@@ -1,14 +1,16 @@
 ---
 name: rtp-bump-tested-up-to
 disable-model-invocation: true
-description: Prepare a WordPress plugin patch release to update its Tested up to metadata, readmes and version fields, then publish through rtp-build after human confirmation.
+description: Prepare and publish a WordPress plugin patch release to update its Tested up to metadata, readmes and version fields through rtp-build.
 ---
 
 # rtp-bump-tested-up-to
 
-Prepare a patch release that updates WordPress tested-up-to metadata, then pause
-for human review. After explicit confirmation, commit only the metadata change
-and let `rtp-build` commit and publish the remaining release work.
+Prepare a patch release that updates WordPress tested-up-to metadata, commit only
+the metadata change, then let `rtp-build` commit and publish the remaining release
+work. Invoking this skill authorizes that full flow, including commits, tagging
+and pushing. Continue after successful checks without an interim approval prompt,
+unless the user explicitly requests preparation only or a review pause.
 
 ## Inputs
 
@@ -43,7 +45,8 @@ details or modifying plugin files.
    fetching fails, stop and report that being up to date could not be verified.
 4. Compare the current branch with its upstream:
    - **Equal:** Continue.
-   - **Ahead only:** Continue and report the unpublished commits for review.
+   - **Ahead only:** Continue and report the unpublished commits that publication
+     will also push.
    - **Behind only:** Fast-forward to the fetched upstream with
      `git merge --ff-only @{upstream}`. Do not create a merge commit or rebase.
    - **Diverged:** Stop and report the divergence. Do not push or reconcile
@@ -86,7 +89,7 @@ Read the plugin's build instructions and identify the files needed for the relea
 
 - Identify the documented checks and any compilation required before `rtp-build`.
   npm package version synchronization, POT generation and packaging belong to
-  `rtp-build` after confirmation.
+  `rtp-build` during publication.
 
 ## 3. Prepare the release
 
@@ -101,7 +104,7 @@ Read the plugin's build instructions and identify the files needed for the relea
    header, stable tag and relevant constants. Do not edit version fields in
    `package.json` or `package-lock.json`, or run `npm version` during preparation;
    `rtp-build` synchronizes those to the plugin release version using `npm version`
-   after confirmation. Leave dependency versions and minimum WordPress/PHP
+   during publication. Leave dependency versions and minimum WordPress/PHP
    requirements unchanged.
 5. Add the new release's changelog entry to both readmes, following their
    existing heading and date formats. Use identical description text for each
@@ -113,20 +116,18 @@ Read the plugin's build instructions and identify the files needed for the relea
    Stop if required checks fail.
 7. Review Git status and the full diff, run `git diff --check`, and confirm that
    the changes contain only intended release preparation and generated files.
-   Keep everything unstaged and uncommitted for human review.
+   Keep everything unstaged and uncommitted until the metadata commit below.
 
-## 4. Pause for human review
+## 4. Commit metadata and publish
 
-Show the prepared diff and a brief summary of the version changes and check
-results. Identify any outstanding manual compatibility testing.
+Briefly report the version changes, check results and any outstanding manual
+compatibility testing, then continue directly to the metadata commit and
+`rtp-build`. Do not claim compatibility testing passed without evidence.
 
-Ask whether to proceed with the metadata commit and `rtp-build` publication, then
-wait for explicit confirmation. Keep all changes unstaged and uncommitted until
-confirmed.
+If the user explicitly requested preparation only or a review pause, show the
+prepared diff and stop here with changes unstaged and uncommitted.
 
-## 5. On confirmation, commit metadata and publish
-
-1. Check that the remaining changes are the reviewed release preparation.
+1. Check that the remaining changes contain only the intended release preparation.
    `rtp-build` stages all remaining changes with `git add -A`.
 2. Stage only the `Tested up to` metadata change. The same readme also contains
    the stable-tag, changelog and upgrade-notice changes, so stage the exact
