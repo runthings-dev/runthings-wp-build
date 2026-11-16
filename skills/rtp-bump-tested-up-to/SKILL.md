@@ -78,12 +78,15 @@ Read the plugin's build instructions and identify the files needed for the relea
   version fields, such as constants or package metadata. Distinguish plugin
   release versions from dependency versions; do not assume every version string
   should be bumped.
-- Report conflicting version values without correcting them.
+- Report conflicting version values without correcting them. Stale npm root
+  package versions are handled by `rtp-build` during publication and do not block
+  preparation when the plugin release version is unambiguous.
 
 ### Build and release commands
 
 - Identify the documented checks and any compilation required before `rtp-build`.
-  POT generation and packaging belong to `rtp-build` after confirmation.
+  npm package version synchronization, POT generation and packaging belong to
+  `rtp-build` after confirmation.
 
 ## 3. Prepare the release
 
@@ -95,8 +98,11 @@ Read the plugin's build instructions and identify the files needed for the relea
    already matches, stop: no bump is needed.
 4. Increment the plugin's patch version and update the applicable version
    references identified from its build instructions, including the plugin
-   header, stable tag and relevant constants or package metadata. Leave
-   dependency versions and minimum WordPress/PHP requirements unchanged.
+   header, stable tag and relevant constants. Do not edit version fields in
+   `package.json` or `package-lock.json`, or run `npm version` during preparation;
+   `rtp-build` synchronizes those to the plugin release version using `npm version`
+   after confirmation. Leave dependency versions and minimum WordPress/PHP
+   requirements unchanged.
 5. Add the new release's changelog entry to both readmes, following their
    existing heading and date formats. Use identical description text for each
    item; only the markup differs. Describe the compatibility metadata update
@@ -134,6 +140,7 @@ confirmed.
    Replace `X.X` with the target WordPress branch. Leave all other preparation
    changes uncommitted.
 4. Run `rtp-build` from the plugin root with the remaining preparation changes
-   uncommitted. It generates the POT and package, commits all remaining changes
-   as `chore(release): deploy vX.Y.Z`, tags that commit and pushes.
+   uncommitted. It synchronizes npm root package versions using `npm version`,
+   generates the POT and package, commits all remaining changes as
+   `chore(release): deploy vX.Y.Z`, tags that commit and pushes.
 5. Report the command result. If it fails, stop and identify the failed step.
