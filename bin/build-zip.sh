@@ -17,6 +17,7 @@ fi
 FORCE_OVERWRITE=false
 INIT_DISTIGNORE=false
 GENERATE_CHANGELOG=false
+TESTED_UP_TO_VERSION=""
 LOCAL_BUILD=false
 DEPLOY_WORKFLOWS=()
 while [[ $# -gt 0 ]]; do
@@ -32,6 +33,14 @@ while [[ $# -gt 0 ]]; do
     --changelog)
       GENERATE_CHANGELOG=true
       shift
+      ;;
+    --tested-up-to)
+      if [[ $# -lt 2 ]] || [[ ! "$2" =~ ^[0-9]+\.[0-9]+(\.[0-9]+)?$ ]]; then
+        echo -e "${RED}Error:${NC} --tested-up-to requires a WordPress version, e.g. --tested-up-to 7.1"
+        exit 1
+      fi
+      TESTED_UP_TO_VERSION="$2"
+      shift 2
       ;;
     --local)
       LOCAL_BUILD=true
@@ -54,7 +63,7 @@ while [[ $# -gt 0 ]]; do
       ;;
     *)
       echo -e "${RED}Unknown option:${NC} $1"
-      echo "Usage: rtp-build [--force|-f] [--init] [--changelog] [--local] [--workflows|--workflows:<name>]"
+      echo "Usage: rtp-build [--force|-f] [--init] [--changelog] [--tested-up-to <version>] [--local] [--workflows|--workflows:<name>]"
       exit 1
       ;;
   esac
@@ -72,7 +81,71 @@ SCRIPT_DIR="$(cd "$(dirname "$SCRIPT_SOURCE")" && pwd)"
 # Templates
 DISTIGNORE_TEMPLATE="${SCRIPT_DIR}/../templates/distignore"
 CHANGELOG_PROMPT_TEMPLATE="${SCRIPT_DIR}/../templates/changelog-prompt"
+TESTED_UP_TO_PROMPT_TEMPLATE="${SCRIPT_DIR}/../templates/tested-up-to-prompt"
 WORKFLOWS_TEMPLATE_DIR="${SCRIPT_DIR}/../templates/workflows"
+
+# Handle --tested-up-to before any plugin or release operations
+if [[ -n "$TESTED_UP_TO_VERSION" ]]; then
+  for REQUIRED_TOOL in curl jq; do
+    if ! command -v "$REQUIRED_TOOL" &> /dev/null; then
+      echo -e "${RED}Error:${NC} --tested-up-to requires $REQUIRED_TOOL."
+      exit 1
+    fi
+  done
+
+  PLUGINS_URL="https://raw.githubusercontent.com/runthings-dev/plugin-stats/master/plugins.json"
+  if ! PLUGINS_JSON=$(curl --fail --silent --show-error --location --connect-timeout 10 --max-time 30 "$PLUGINS_URL"); then
+    echo -e "${RED}Error:${NC} Could not fetch plugin slugs from $PLUGINS_URL"
+    exit 1
+  fi
+
+  # Validate the entire list before generating a prompt or touching the clipboard.
+  if ! PLUGIN_SLUGS=$(printf '%s' "$PLUGINS_JSON" | jq -er '
+    if type == "array" and length > 0 then
+      if all(.[]; if type == "string" then test("^[a-z0-9]+(-[a-z0-9]+)*$") else false end) then
+        .[]
+      else
+        error("Expected plugin slugs containing lowercase letters, numbers and hyphens")
+      end
+    else
+      error("Expected a non-empty array of plugin slugs")
+    end
+  '); then
+    echo -e "${RED}Error:${NC} Invalid plugin list from $PLUGINS_URL"
+    exit 1
+  fi
+
+  if ! PROMPT=$(cat "$TESTED_UP_TO_PROMPT_TEMPLATE"); then
+    echo -e "${RED}Error:${NC} Could not read tested-up-to prompt template."
+    exit 1
+  fi
+  PROMPT="${PROMPT//\{\{WORDPRESS_VERSION\}\}/$TESTED_UP_TO_VERSION}"
+  PROMPT="${PROMPT//\{\{SLUGS\}\}/$PLUGIN_SLUGS}"
+
+  COPIED=false
+  if command -v pbcopy &> /dev/null; then
+    if printf '%s\n' "$PROMPT" | pbcopy; then
+      COPIED=true
+    fi
+  elif command -v xclip &> /dev/null; then
+    if printf '%s\n' "$PROMPT" | xclip -selection clipboard; then
+      COPIED=true
+    fi
+  elif command -v xsel &> /dev/null; then
+    if printf '%s\n' "$PROMPT" | xsel --clipboard; then
+      COPIED=true
+    fi
+  fi
+
+  if [[ "$COPIED" == true ]]; then
+    echo -e "${GREEN}Tested-up-to prompt copied to clipboard for WordPress ${TESTED_UP_TO_VERSION}!${NC}"
+    printf '\nPlugin slugs:\n%s\n' "$PLUGIN_SLUGS"
+  else
+    echo -e "${YELLOW}Clipboard unavailable or copy failed, printing prompt:${NC}"
+    printf '\n%s\n' "$PROMPT"
+  fi
+  exit 0
+fi
 
 # Globals
 PLUGIN_DIR="$(pwd)"

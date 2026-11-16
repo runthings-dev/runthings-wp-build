@@ -26,7 +26,20 @@ The plugin directory must contain a main plugin file named `{plugin-slug}.php` (
 |--------|-------------|
 | `--init` | Create a default `.distignore` file in the current directory |
 | `--changelog` | Generate a changelog prompt from commits since last tag and copy to clipboard |
+| `--tested-up-to <version>` | Fetch plugin slugs and copy a bulk `rtp-bump-tested-up-to` prompt targeting this WordPress version |
 | `-f`, `--force` | Overwrite existing release archive (or `.distignore` with `--init`) |
+
+### Tested-up-to prompt
+
+Run from any directory:
+
+```bash
+rtp-build --tested-up-to 7.1
+```
+
+This fetches the current plugin slugs from [plugin-stats/plugins.json](https://github.com/runthings-dev/plugin-stats/blob/master/plugins.json) and inserts them into a prompt targeting the supplied WordPress version. The prompt requests one sub-agent per plugin, the skill's full release flow, continued progress if a plugin is blocked, decisions surfaced in the parent thread, parent handling of elevated commands, and a consolidated results table.
+
+This option only generates the prompt; it does not run the skill or perform build or release operations. Paste the prompt into your agent session to begin. It requires `curl` and `jq`, plus `pbcopy`, `xclip`, or `xsel` for clipboard support. If copying is unavailable or fails, the prompt is printed instead. Fetch or validation failures leave the clipboard untouched.
 
 ## Environment Variables
 
@@ -45,7 +58,8 @@ The following tools must be installed and available in your PATH:
 - `wp` (WP-CLI)
 - `npm` (only if your plugin has a `package.json`)
 - `composer` (optional, only if your plugin uses Composer)
-- `pbcopy`, `xclip`, or `xsel` (optional, for `--changelog` clipboard support)
+- `curl` and `jq` (only for `--tested-up-to`)
+- `pbcopy`, `xclip`, or `xsel` (optional, for `--changelog` and `--tested-up-to` clipboard support)
 
 ## What It Does
 

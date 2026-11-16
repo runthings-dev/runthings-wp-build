@@ -1,0 +1,8 @@
+Run rtp-bump-tested-up-to for these plugin slugs, targeting WordPress {{WORDPRESS_VERSION}}.
+
+Use one sub-agent per plugin and follow the skill’s full release flow.
+Continue with other plugins if one is blocked, and surface any decisions
+here. Handle elevated commands in the parent thread if sub-agent
+permissions stall. Finish with a consolidated results table.
+
+{{SLUGS}}
