@@ -28,8 +28,6 @@ Builds require a main plugin file named `{plugin-slug}.php` (matching the direct
 | `--init` | Create a default `.distignore` file in the current directory |
 | `--workflows` | Deploy all bundled GitHub Actions workflows to `.github/workflows/` |
 | `--workflows:<name>` | Deploy one bundled workflow (`release` or `wporg`). Repeat the option to select multiple workflows. |
-| `--changelog` | Generate a changelog prompt from commits since last tag and copy to clipboard |
-| `--tested-up-to <version>` | Fetch plugin slugs and copy a bulk `rtp-bump-tested-up-to` prompt targeting this WordPress version |
 | `-f`, `--force` | Allow replacing an existing release archive, replacing `.distignore` during init, or overwriting unmanaged or outdated workflows during workflow deployment. Also allow builds with outdated workflows. |
 | `-h`, `--help` | Show command-line usage and options |
 
@@ -44,7 +42,22 @@ rtp-build --workflows:release --force
 
 Run setup commands, local builds, changelog prompts, and Tested up to prompts in separate invocations.
 
-### Tested-up-to prompt
+## Prompts
+
+| Option | Description |
+|--------|-------------|
+| `--changelog` | Generate a changelog prompt from the current repository’s Git history. |
+| `--tested-up-to <version>` | Generate a bulk prompt targeting the supplied WordPress version. Requires `RTP_PLUGINS_JSON_URL`. |
+
+### Changelog
+
+Run from the plugin’s Git repository to generate a changelog prompt from commits since the latest tag. If there are no tags, the command uses up to 20 recent commits. It copies the prompt to the clipboard when a clipboard tool is available and prints it otherwise.
+
+```bash
+rtp-build --changelog
+```
+
+### Tested up to
 
 Set `RTP_PLUGINS_JSON_URL` to the direct URL of a JSON file containing your WordPress plugin slugs. The command can run from any directory.
 

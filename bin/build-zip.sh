@@ -34,15 +34,17 @@ Options:
   --workflows              Deploy all bundled GitHub Actions workflow templates.
   --workflows:<name>       Deploy a named workflow (release or wporg).
                            Repeat this option to select multiple workflows.
-  --changelog              Generate a changelog prompt from Git commits.
-  --tested-up-to <version>  Fetch plugin slugs and generate a bulk Tested up to
-                           prompt for the given WordPress version (e.g. 7.1).
-                           Requires RTP_PLUGINS_JSON_URL.
   -f, --force              Allow replacing .distignore, unmanaged or outdated
                            workflows, and an existing release archive. Also
                            allow builds with outdated workflows. Workflows
                            marked -custom are preserved.
   -h, --help               Show this help.
+
+Prompts:
+  --changelog              Generate a changelog prompt from Git commits.
+  --tested-up-to <version>  Fetch plugin slugs and generate a bulk Tested up to
+                           prompt for the given WordPress version (e.g. 7.1).
+                           Requires RTP_PLUGINS_JSON_URL.
 EOF
 }
 
