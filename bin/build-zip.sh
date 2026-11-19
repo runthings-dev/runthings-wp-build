@@ -136,8 +136,8 @@ SCRIPT_DIR="$(cd "$(dirname "$SCRIPT_SOURCE")" && pwd)"
 
 # Templates
 DISTIGNORE_TEMPLATE="${SCRIPT_DIR}/../templates/distignore"
-CHANGELOG_PROMPT_TEMPLATE="${SCRIPT_DIR}/../templates/changelog-prompt"
-TESTED_UP_TO_PROMPT_TEMPLATE="${SCRIPT_DIR}/../templates/tested-up-to-prompt"
+CHANGELOG_PROMPT_TEMPLATE="${SCRIPT_DIR}/../templates/prompts/changelog-prompt"
+TESTED_UP_TO_PROMPT_TEMPLATE="${SCRIPT_DIR}/../templates/prompts/tested-up-to-prompt"
 WORKFLOWS_TEMPLATE_DIR="${SCRIPT_DIR}/../templates/workflows"
 
 # Handle --tested-up-to before any plugin or release operations
