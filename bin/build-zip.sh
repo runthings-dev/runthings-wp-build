@@ -13,6 +13,38 @@ else
   NC=''
 fi
 
+print_usage() {
+  cat <<'EOF'
+Usage:
+  rtp-build [--local] [--force]
+  rtp-build --init [--workflows | --workflows:<name> ...] [--force]
+  rtp-build --workflows [--force]
+  rtp-build --workflows:<name> ... [--force]
+  rtp-build --changelog
+  rtp-build --tested-up-to <version>
+  rtp-build --help
+
+Run without options to build and release from the plugin root.
+
+Options:
+  --local                  Build the POT and ZIP locally. Skip release archiving
+                           and Git commit, tag, and push operations.
+  --init                   Create a default .distignore. Runs before workflows
+                           when combined with --workflows or --workflows:<name>.
+  --workflows              Deploy all bundled GitHub Actions workflow templates.
+  --workflows:<name>       Deploy a named workflow (release or wporg).
+                           Repeat this option to select multiple workflows.
+  --changelog              Generate a changelog prompt from Git commits.
+  --tested-up-to <version>  Fetch plugin slugs and generate a bulk Tested up to
+                           prompt for the given WordPress version (e.g. 7.1).
+  -f, --force              Allow replacing .distignore, unmanaged or outdated
+                           workflows, and an existing release archive. Also
+                           allow builds with outdated workflows. Workflows
+                           marked -custom are preserved.
+  -h, --help               Show this help.
+EOF
+}
+
 # Parse arguments
 FORCE_OVERWRITE=false
 INIT_DISTIGNORE=false
@@ -22,6 +54,10 @@ LOCAL_BUILD=false
 DEPLOY_WORKFLOWS=()
 while [[ $# -gt 0 ]]; do
   case $1 in
+    -h|--help)
+      print_usage
+      exit 0
+      ;;
     -f|--force)
       FORCE_OVERWRITE=true
       shift
@@ -62,8 +98,8 @@ while [[ $# -gt 0 ]]; do
       shift
       ;;
     *)
-      echo -e "${RED}Unknown option:${NC} $1"
-      echo "Usage: rtp-build [--force|-f] [--init] [--changelog] [--tested-up-to <version>] [--local] [--workflows|--workflows:<name>]"
+      echo -e "${RED}Unknown option:${NC} $1" >&2
+      print_usage >&2
       exit 1
       ;;
   esac
