@@ -2,7 +2,7 @@
 
 update CHANGELOG.md
 
-bump package.json version
+bump package.json version with `npm-version x.x.x`
 
 commit 
 
