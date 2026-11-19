@@ -46,13 +46,24 @@ Run setup commands, local builds, changelog prompts, and Tested up to prompts in
 
 ### Tested-up-to prompt
 
-Run from any directory:
+Set `RTP_PLUGINS_JSON_URL` to the direct URL of a JSON file containing your WordPress plugin slugs. The command can run from any directory.
 
 ```bash
-rtp-build --tested-up-to 7.1
+RTP_PLUGINS_JSON_URL="https://example.com/plugins.json" rtp-build --tested-up-to 7.1
 ```
 
-This fetches the current plugin slugs from [plugin-stats/plugins.json](https://github.com/runthings-dev/plugin-stats/blob/master/plugins.json) and inserts them into a prompt targeting the supplied WordPress version. The prompt requests one sub-agent per plugin, the skill's full release flow, continued progress if a plugin is blocked, decisions surfaced in the parent thread, parent handling of elevated commands, and a consolidated results table.
+To use the same list in every shell session, add `export RTP_PLUGINS_JSON_URL="https://example.com/plugins.json"` to your shell startup file, such as `~/.zshrc` for interactive Zsh sessions. You can then run `rtp-build --tested-up-to 7.1` directly.
+
+The file must contain a non-empty JSON array of slug strings. Use lowercase letters and numbers, with single hyphens between parts of a slug.
+
+```json
+[
+  "my-first-plugin",
+  "my-second-plugin"
+]
+```
+
+The command inserts the fetched slugs into a prompt targeting the supplied WordPress version. The prompt requests one sub-agent per plugin, the skill's full release flow, continued progress if a plugin is blocked, decisions surfaced in the parent thread, parent handling of elevated commands, and a consolidated results table.
 
 This option only generates the prompt; it does not run the skill or perform build or release operations. Paste the prompt into your agent session to begin. It requires `curl` and `jq`, plus `pbcopy`, `xclip`, or `xsel` for clipboard support. If copying is unavailable or fails, the prompt is printed instead. Fetch or validation failures leave the clipboard untouched.
 
@@ -60,7 +71,8 @@ This option only generates the prompt; it does not run the skill or perform buil
 
 | Variable | Required | Description |
 |----------|----------|-------------|
-| `RTP_RELEASE_DIR` | No | Base directory for versioned release archives. When set, copies the zip to `{RTP_RELEASE_DIR}/{plugin-slug}/releases/v{version}/` |
+| `RTP_RELEASE_DIR` | No | Base directory for versioned release archives. When set, copies the zip to `{RTP_RELEASE_DIR}/{plugin-slug}/releases/v{version}/`. When unset, skips archiving. |
+| `RTP_PLUGINS_JSON_URL` | Only for `--tested-up-to` | Direct URL to a JSON array of plugin slugs. Has no default. |
 
 ## Requirements
 
