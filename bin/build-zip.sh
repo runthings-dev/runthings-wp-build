@@ -69,6 +69,25 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
+# Init and workflow deployment can run together as one setup action.
+ACTIONS=()
+if [[ "$INIT_DISTIGNORE" == true ]] || [[ ${#DEPLOY_WORKFLOWS[@]} -gt 0 ]]; then
+  ACTIONS+=("setup (--init/--workflows)")
+fi
+if [[ "$GENERATE_CHANGELOG" == true ]]; then
+  ACTIONS+=("--changelog")
+fi
+if [[ -n "$TESTED_UP_TO_VERSION" ]]; then
+  ACTIONS+=("--tested-up-to")
+fi
+if [[ "$LOCAL_BUILD" == true ]]; then
+  ACTIONS+=("--local")
+fi
+if [[ ${#ACTIONS[@]} -gt 1 ]]; then
+  printf '%bError:%b Cannot combine these actions: %s\n' "$RED" "$NC" "${ACTIONS[*]}" >&2
+  exit 1
+fi
+
 # Get the directory where this script is located (follow symlinks for npm global install)
 SCRIPT_SOURCE="${BASH_SOURCE[0]}"
 while [[ -L "$SCRIPT_SOURCE" ]]; do
@@ -156,15 +175,19 @@ LANG_DIR="languages"
 POT_FILE="$LANG_DIR/$PLUGINSLUG.pot"
 RELEASE_BASE_DIR="${RTP_RELEASE_DIR:-}"
 
-# Handle --init: write default .distignore and exit
+# Handle --init before deploying workflows, if requested.
 if [[ "$INIT_DISTIGNORE" == true ]]; then
   if [[ -f "$DISTIGNORE_FILE" ]] && [[ "$FORCE_OVERWRITE" == false ]]; then
     echo -e "${RED}Error:${NC} .distignore already exists. Use --force to overwrite."
     exit 1
   fi
-  cp "$DISTIGNORE_TEMPLATE" "$DISTIGNORE_FILE"
+  if ! cp "$DISTIGNORE_TEMPLATE" "$DISTIGNORE_FILE"; then
+    exit 1
+  fi
   echo -e "${GREEN}Created${NC} .distignore at $DISTIGNORE_FILE"
-  exit 0
+  if [[ ${#DEPLOY_WORKFLOWS[@]} -eq 0 ]]; then
+    exit 0
+  fi
 fi
 
 # Handle --changelog: generate changelog prompt and copy to clipboard
