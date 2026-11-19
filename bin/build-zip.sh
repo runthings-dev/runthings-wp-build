@@ -37,6 +37,7 @@ Options:
   --changelog              Generate a changelog prompt from Git commits.
   --tested-up-to <version>  Fetch plugin slugs and generate a bulk Tested up to
                            prompt for the given WordPress version (e.g. 7.1).
+                           Requires RTP_PLUGINS_JSON_URL.
   -f, --force              Allow replacing .distignore, unmanaged or outdated
                            workflows, and an existing release archive. Also
                            allow builds with outdated workflows. Workflows
@@ -141,6 +142,12 @@ WORKFLOWS_TEMPLATE_DIR="${SCRIPT_DIR}/../templates/workflows"
 
 # Handle --tested-up-to before any plugin or release operations
 if [[ -n "$TESTED_UP_TO_VERSION" ]]; then
+  PLUGINS_URL="${RTP_PLUGINS_JSON_URL:-}"
+  if [[ -z "$PLUGINS_URL" ]]; then
+    printf '%bError:%b Set RTP_PLUGINS_JSON_URL to the URL of your plugin slug JSON list to use --tested-up-to.\n' "$RED" "$NC" >&2
+    exit 1
+  fi
+
   for REQUIRED_TOOL in curl jq; do
     if ! command -v "$REQUIRED_TOOL" &> /dev/null; then
       echo -e "${RED}Error:${NC} --tested-up-to requires $REQUIRED_TOOL."
@@ -148,8 +155,7 @@ if [[ -n "$TESTED_UP_TO_VERSION" ]]; then
     fi
   done
 
-  PLUGINS_URL="https://raw.githubusercontent.com/runthings-dev/plugin-stats/master/plugins.json"
-  if ! PLUGINS_JSON=$(curl --fail --silent --show-error --location --connect-timeout 10 --max-time 30 "$PLUGINS_URL"); then
+  if ! PLUGINS_JSON=$(curl --fail --silent --show-error --location --connect-timeout 10 --max-time 30 -- "$PLUGINS_URL"); then
     echo -e "${RED}Error:${NC} Could not fetch plugin slugs from $PLUGINS_URL"
     exit 1
   fi
