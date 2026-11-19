@@ -18,16 +18,31 @@ Run from the root directory of your WordPress plugin:
 rtp-build [options]
 ```
 
-The plugin directory must contain a main plugin file named `{plugin-slug}.php` (matching the directory name).
+Builds require a main plugin file named `{plugin-slug}.php` (matching the directory name). Run `rtp-build --help` from any directory to see the available commands.
 
 ## Options
 
 | Option | Description |
 |--------|-------------|
+| `--local` | Generate the POT and ZIP locally. Skip release archiving and Git commit, tag, and push operations. |
 | `--init` | Create a default `.distignore` file in the current directory |
+| `--workflows` | Deploy all bundled GitHub Actions workflows to `.github/workflows/` |
+| `--workflows:<name>` | Deploy one bundled workflow (`release` or `wporg`). Repeat the option to select multiple workflows. |
 | `--changelog` | Generate a changelog prompt from commits since last tag and copy to clipboard |
 | `--tested-up-to <version>` | Fetch plugin slugs and copy a bulk `rtp-bump-tested-up-to` prompt targeting this WordPress version |
-| `-f`, `--force` | Overwrite existing release archive (or `.distignore` with `--init`) |
+| `-f`, `--force` | Allow replacing an existing release archive, replacing `.distignore` during init, or overwriting unmanaged or outdated workflows during workflow deployment. Also allow builds with outdated workflows. |
+| `-h`, `--help` | Show command-line usage and options |
+
+### Workflow setup
+
+Combine `--init` with `--workflows` or `--workflows:<name>` to create `.distignore` first and then deploy the selected workflows. Use `--force` when you want to replace an existing `.distignore` or update an unmanaged or outdated workflow. Workflow deployment always preserves workflows marked `-custom` and managed workflows that already match the template version.
+
+```bash
+rtp-build --init --workflows
+rtp-build --workflows:release --force
+```
+
+Run setup commands, local builds, changelog prompts, and Tested up to prompts in separate invocations.
 
 ### Tested-up-to prompt
 
