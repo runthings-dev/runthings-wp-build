@@ -142,6 +142,29 @@ CHANGELOG_PROMPT_TEMPLATE="${SCRIPT_DIR}/../templates/prompts/changelog-prompt"
 TESTED_UP_TO_PROMPT_TEMPLATE="${SCRIPT_DIR}/../templates/prompts/tested-up-to-prompt"
 WORKFLOWS_TEMPLATE_DIR="${SCRIPT_DIR}/../templates/workflows"
 
+if [[ ${#DEPLOY_WORKFLOWS[@]} -gt 0 ]]; then
+  if [[ "${DEPLOY_WORKFLOWS[0]}" == "all" ]]; then
+    DEPLOY_WORKFLOWS=()
+    for template_file in "${WORKFLOWS_TEMPLATE_DIR}"/*.yml; do
+      if [[ -f "$template_file" ]]; then
+        workflow_name="${template_file##*/}"
+        DEPLOY_WORKFLOWS+=("${workflow_name%.yml}")
+      fi
+    done
+    if [[ ${#DEPLOY_WORKFLOWS[@]} -eq 0 ]]; then
+      printf '%bError:%b No workflow templates found in %s\n' "$RED" "$NC" "$WORKFLOWS_TEMPLATE_DIR" >&2
+      exit 1
+    fi
+  fi
+
+  for workflow_name in "${DEPLOY_WORKFLOWS[@]}"; do
+    if [[ ! -f "${WORKFLOWS_TEMPLATE_DIR}/${workflow_name}.yml" ]]; then
+      printf '%bError:%b Workflow template not found: %s.yml\n' "$RED" "$NC" "$workflow_name" >&2
+      exit 1
+    fi
+  done
+fi
+
 # Handle --tested-up-to before any plugin or release operations
 if [[ -n "$TESTED_UP_TO_VERSION" ]]; then
   PLUGINS_URL="${RTP_PLUGINS_JSON_URL:-}"
@@ -335,9 +358,8 @@ deploy_workflow() {
   local target_dir="${PLUGIN_DIR}/.github/workflows"
   local target_file="${target_dir}/${workflow_name}.yml"
 
-  # Check template exists
-  if [[ ! -f "$template_file" ]]; then
-    echo -e "${RED}Error:${NC} Workflow template not found: ${workflow_name}.yml"
+  if [[ -e "$target_file" ]] && [[ ! -f "$target_file" ]]; then
+    printf '%bError:%b Workflow destination is not a file: %s\n' "$RED" "$NC" "$target_file" >&2
     return 1
   fi
 
@@ -345,7 +367,9 @@ deploy_workflow() {
   template_version=$(get_template_version "$workflow_name")
 
   # Create target directory if needed
-  mkdir -p "$target_dir"
+  if ! mkdir -p "$target_dir"; then
+    return 1
+  fi
 
   # Check if target already exists
   if [[ -f "$target_file" ]]; then
@@ -372,7 +396,15 @@ deploy_workflow() {
     fi
   fi
 
-  cp "$template_file" "$target_file"
+  # Publish the workflow only after the complete template has been copied.
+  local temporary_file
+  if ! temporary_file=$(mktemp "${target_dir}/.${workflow_name}.XXXXXX"); then
+    return 1
+  fi
+  if ! cp -p "$template_file" "$temporary_file" || ! mv -f "$temporary_file" "$target_file"; then
+    rm -f "$temporary_file"
+    return 1
+  fi
   echo -e "${GREEN}Deployed${NC} ${workflow_name}.yml (v${template_version})"
 }
 
@@ -383,20 +415,11 @@ if [[ ${#DEPLOY_WORKFLOWS[@]} -gt 0 ]]; then
   # Ensure .github is in distignore
   ensure_github_in_distignore
 
-  if [[ "${DEPLOY_WORKFLOWS[0]}" == "all" ]]; then
-    # Deploy all workflows in template dir
-    for template_file in "${WORKFLOWS_TEMPLATE_DIR}"/*.yml; do
-      if [[ -f "$template_file" ]]; then
-        workflow_name=$(basename "$template_file" .yml)
-        deploy_workflow "$workflow_name"
-      fi
-    done
-  else
-    # Deploy specified workflows
-    for workflow_name in "${DEPLOY_WORKFLOWS[@]}"; do
-      deploy_workflow "$workflow_name"
-    done
-  fi
+  for workflow_name in "${DEPLOY_WORKFLOWS[@]}"; do
+    if ! deploy_workflow "$workflow_name"; then
+      exit 1
+    fi
+  done
 
   echo -e "${GREEN}Workflow deployment complete.${NC}"
   exit 0
