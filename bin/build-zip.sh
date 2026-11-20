@@ -711,10 +711,22 @@ elif [[ -n "$VERSION" ]]; then
     echo -e "${YELLOW}Warning:${NC} Nothing to commit, skipping git operations."
   else
     echo "Creating tag v${VERSION}..."
-    git tag "v${VERSION}"
+    if ! git tag "v${VERSION}"; then
+      echo -e "${RED}Error:${NC} Failed to create release tag v${VERSION}." >&2
+      exit 1
+    fi
 
-    echo "Pushing commit and tag to remote..."
-    git push && git push --tags
+    echo "Pushing release commit to remote..."
+    if ! git push; then
+      echo -e "${RED}Error:${NC} Failed to push the release commit." >&2
+      exit 1
+    fi
+
+    echo "Pushing release tags to remote..."
+    if ! git push --tags; then
+      echo -e "${RED}Error:${NC} Failed to push release tags." >&2
+      exit 1
+    fi
   fi
 else
   echo -e "${YELLOW}Warning:${NC} No version found, skipping git operations."
