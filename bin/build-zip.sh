@@ -532,6 +532,9 @@ if [[ -d "$WORKFLOWS_DIR" ]]; then
       # Compare versions
       if [[ "$existing_version" != "$template_version" ]]; then
         echo -e "${RED}Outdated:${NC} ${workflow_name}.yml (v${existing_version} -> v${template_version})"
+        if [[ "$FORCE_OVERWRITE" == false ]]; then
+          printf '  Update with: rtp-build --workflows:%s --force\n' "$workflow_name"
+        fi
         WORKFLOW_OUTDATED=true
       fi
     fi
@@ -539,7 +542,7 @@ if [[ -d "$WORKFLOWS_DIR" ]]; then
 
   if [[ "$WORKFLOW_OUTDATED" == true ]]; then
     if [[ "$FORCE_OVERWRITE" == false ]]; then
-      echo -e "${RED}Error:${NC} Outdated workflows detected. Run 'rtp-build --workflows' to update, or use --force to continue anyway."
+      echo -e "${RED}Error:${NC} Update the listed workflows, or rerun the build with --force to continue without updating them."
       exit 1
     else
       echo -e "${YELLOW}Warning:${NC} Continuing with outdated workflows (--force)"
