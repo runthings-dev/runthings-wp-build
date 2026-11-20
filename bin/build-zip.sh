@@ -337,18 +337,43 @@ ensure_github_in_distignore() {
     return 0
   fi
 
-  if grep -q "^\.github" "$DISTIGNORE_FILE"; then
+  if grep -Eq '^/?[.]github/?$' "$DISTIGNORE_FILE"; then
     return 0
   fi
 
-  # Check if .git/ exists in distignore, add .github/ after it
-  if grep -q "^\.git/" "$DISTIGNORE_FILE"; then
-    sed -i '' 's/^\.git\/$/&\n.github\//' "$DISTIGNORE_FILE"
-    echo -e "${GREEN}Added${NC} .github/ to .distignore (after .git/)"
-  else
-    echo ".github/" >> "$DISTIGNORE_FILE"
-    echo -e "${GREEN}Added${NC} .github/ to .distignore"
+  # Write through symlinks and stage the edit beside the actual file.
+  local distignore_file="$DISTIGNORE_FILE"
+  local link_target
+  while [[ -L "$distignore_file" ]]; do
+    if ! link_target=$(readlink "$distignore_file"); then
+      return 1
+    fi
+    if [[ "$link_target" != /* ]]; then
+      link_target="${distignore_file%/*}/$link_target"
+    fi
+    distignore_file="$link_target"
+  done
+
+  local temporary_file
+  if ! temporary_file=$(mktemp "${distignore_file}.XXXXXX"); then
+    return 1
   fi
+  if ! cp -p "$distignore_file" "$temporary_file" || ! awk '
+    { print }
+    !added && /^\.git\/$/ {
+      print ".github/"
+      added = 1
+    }
+    END {
+      if (!added) {
+        print ".github/"
+      }
+    }
+  ' "$distignore_file" > "$temporary_file" || ! mv -f "$temporary_file" "$distignore_file"; then
+    rm -f "$temporary_file"
+    return 1
+  fi
+  echo -e "${GREEN}Added${NC} .github/ to .distignore"
 }
 
 # Function to deploy a single workflow
@@ -412,8 +437,10 @@ deploy_workflow() {
 if [[ ${#DEPLOY_WORKFLOWS[@]} -gt 0 ]]; then
   echo "Deploying workflows..."
 
-  # Ensure .github is in distignore
-  ensure_github_in_distignore
+  if ! ensure_github_in_distignore; then
+    printf '%bError:%b Could not update .distignore.\n' "$RED" "$NC" >&2
+    exit 1
+  fi
 
   for workflow_name in "${DEPLOY_WORKFLOWS[@]}"; do
     if ! deploy_workflow "$workflow_name"; then
