@@ -2,9 +2,11 @@
 
 update CHANGELOG.md
 
-bump package.json version with `npm-version x.x.x`
+commit "docs(changelog): update for vx.x.x"
 
-commit 
+npm-version x.x.x
+
+commit "chore(release): deploy vx.x.x"
 
 npm login
 
