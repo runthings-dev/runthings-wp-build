@@ -1,5 +1,16 @@
 # Changelog
 
+## 4.0.0 - 20th November 2026
+- Added `--tested-up-to <version>` to generate a clipboard prompt for bulk WordPress compatibility releases using a plugin list from `RTP_PLUGINS_JSON_URL`
+- Added the `rtp-bump-tested-up-to` agent skill to prepare and publish compatibility patch releases, including from clean branches with unpublished commits
+- Added `-h` and `--help` to show command usage
+- Synced `package.json` and existing npm lockfiles to the plugin header version during local and release builds
+- Enabled Git release commits, tags, and pushes when `RTP_RELEASE_DIR` is unset
+- Allowed `--init` and workflow installation in the same command and added errors for incompatible action combinations
+- Added targeted update commands for outdated workflows, fixed `.github/` exclusions in `.distignore` on Linux, and made workflow installation failures return an error
+- Made release commands report which step failed when creating a tag or pushing the commit or tags
+- Updated the changelog prompt to clarify it should be identical entry wording in the WordPress and GitHub readmes
+
 ## 3.5.0 - 31st October 2026
 - Fixed plugin ZIPs to include a top-level plugin folder, preventing renamed ZIP files from installing a second copy instead of replacing the existing plugin
 
